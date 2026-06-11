@@ -35,10 +35,10 @@ function Login() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="text-center mb-8">
-          <p className="text-4xl mb-2">🏠</p>
-          <h1 className="text-xl font-semibold text-gray-800">Keluarga Kecil</h1>
-          <p className="text-sm text-gray-400 mt-1">Catat keuangan bersama</p>
+        <div className="text-center mb-4">
+          <img src="/logo.PNG" className="w-40 h-40 object-contain mx-auto mb-0" />
+          <p className="text-base font-medium text-gray-800 bold-italic">little happy family</p>
+          <p className="text-xs text-gray-400 mt-1">Aplikasi Pencatatan Keuangan Keluarga</p>
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">

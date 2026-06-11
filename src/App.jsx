@@ -49,7 +49,10 @@ function App() {
         <div className="bg-white px-4 pt-6 pb-4 shadow-sm sticky top-0 z-10">
           <p className="text-sm text-gray-400">Juni 2026</p>
           <div className="flex justify-between items-center mt-1">
-            <h1 className="text-lg font-semibold text-gray-800">Keluarga Kecil 🏠</h1>
+            <div className="flex items-center gap-2">
+              <img src="/logo depan.PNG" className="w-11 h-11 object-contain" />
+              <h1 className="text-lg font-semibold text-gray-800">Uangnya nidia n rizki</h1>
+            </div>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 group"
@@ -77,25 +80,25 @@ function App() {
           <NavLink to="/" end className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl text-xs ${isActive ? 'text-blue-500' : 'text-gray-400'}`
           }>
-            <span className="text-xl">🏠</span>
+            <img src="/beranda.PNG" className="w-10 h-10 object-contain" />
             Beranda
           </NavLink>
           <NavLink to="/catat" className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl text-xs ${isActive ? 'text-blue-500' : 'text-gray-400'}`
           }>
-            <span className="text-xl">➕</span>
+            <img src="/catat.PNG" className="w-10 h-10 object-contain" />
             Catat
           </NavLink>
           <NavLink to="/laporan" className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl text-xs ${isActive ? 'text-blue-500' : 'text-gray-400'}`
           }>
-            <span className="text-xl">📊</span>
+            <img src="/laporan.PNG" className="w-10 h-10 object-contain" />
             Laporan
           </NavLink>
           <NavLink to="/pengaturan" className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl text-xs ${isActive ? 'text-blue-500' : 'text-gray-400'}`
           }>
-            <span className="text-xl">⚙️</span>
+            <img src="/setting.PNG" className="w-10 h-10 object-contain" />
             Pengaturan
           </NavLink>
         </div>
