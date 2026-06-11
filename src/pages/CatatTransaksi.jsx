@@ -1,20 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
-const KATEGORI = ['Makanan', 'Transportasi', 'Belanja', 'Hiburan', 'Kesehatan', 'Tagihan', 'Lainnya']
+const KATEGORI_DEFAULT = ['Makanan', 'Transportasi', 'Belanja', 'Hiburan', 'Kesehatan', 'Tagihan', 'Lainnya']
 
 function CatatTransaksi({ user }) {
   const nama = user?.user_metadata?.nama || user?.email?.split('@')[0] || 'User'
 
+  const [kategoriList, setKategoriList] = useState(() =>
+    JSON.parse(localStorage.getItem('kategori') || JSON.stringify(KATEGORI_DEFAULT))
+  )
   const [tipe, setTipe] = useState('pengeluaran')
   const [nominal, setNominal] = useState('')
-  const [kategori, setKategori] = useState('Makanan')
+  const [kategori, setKategori] = useState(kategoriList[0] || 'Makanan')
   const [catatan, setCatatan] = useState('')
   const [loading, setLoading] = useState(false)
 
+useEffect(() => {
+  function refreshKategori() {
+    const saved = JSON.parse(localStorage.getItem('kategori') || JSON.stringify(KATEGORI_DEFAULT))
+    setKategoriList(saved)
+  }
+
+  refreshKategori()
+  
+  document.addEventListener('visibilitychange', refreshKategori)
+  return () => document.removeEventListener('visibilitychange', refreshKategori)
+}, [])
+
   async function handleSubmit() {
     if (!nominal) return alert('Nominal tidak boleh kosong!')
-
     setLoading(true)
 
     const { error } = await supabase
@@ -83,7 +97,7 @@ function CatatTransaksi({ user }) {
         <div>
           <p className="text-xs text-gray-400 mb-2">Kategori</p>
           <div className="flex flex-wrap gap-2">
-            {KATEGORI.map(k => (
+            {kategoriList.map(k => (
               <button
                 key={k}
                 onClick={() => setKategori(k)}
