@@ -7,20 +7,35 @@ function formatRupiah(angka) {
 
 function Dashboard() {
   const [transaksi, setTransaksi] = useState([])
+  const [totalPemasukan, setTotalPemasukan] = useState(0)
+  const [totalPengeluaran, setTotalPengeluaran] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchTransaksi()
+    fetchData()
   }, [])
 
-  async function fetchTransaksi() {
-    const { data, error } = await supabase
+  async function fetchData() {
+    // Ambil semua transaksi untuk hitung saldo
+    const { data: semua } = await supabase
+      .from('transaksi')
+      .select('tipe, nominal')
+
+    if (semua) {
+      const pemasukan = semua.filter(t => t.tipe === 'pemasukan').reduce((sum, t) => sum + t.nominal, 0)
+      const pengeluaran = semua.filter(t => t.tipe === 'pengeluaran').reduce((sum, t) => sum + t.nominal, 0)
+      setTotalPemasukan(pemasukan)
+      setTotalPengeluaran(pengeluaran)
+    }
+
+    // Ambil 10 terakhir untuk ditampilkan
+    const { data: terakhir } = await supabase
       .from('transaksi')
       .select('*')
       .order('tanggal', { ascending: false })
       .limit(10)
 
-    if (!error) setTransaksi(data)
+    if (terakhir) setTransaksi(terakhir)
     setLoading(false)
   }
 
@@ -37,16 +52,9 @@ function Dashboard() {
       alert('Gagal menghapus: ' + error.message)
     } else {
       setTransaksi(prev => prev.filter(t => t.id !== id))
+      fetchData()
     }
   }
-
-  const totalPemasukan = transaksi
-    .filter(t => t.tipe === 'pemasukan')
-    .reduce((sum, t) => sum + t.nominal, 0)
-
-  const totalPengeluaran = transaksi
-    .filter(t => t.tipe === 'pengeluaran')
-    .reduce((sum, t) => sum + t.nominal, 0)
 
   const saldo = totalPemasukan - totalPengeluaran
 
