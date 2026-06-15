@@ -1,7 +1,6 @@
 {
   "name": "Keluarga Kecil",
   "short_name": "Keluarga",
-  "description": "Aplikasi keluarga kecil Nidia dan Rizki",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,7 +8,7 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/apple-touch-icon.PNG",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
