@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 
-const EXCEL_MIME_TYPE =
+const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function sanitizeFileName(value) {
@@ -11,197 +11,66 @@ function sanitizeFileName(value) {
     .replace(/[^a-z0-9-_]/g, "");
 }
 
-function formatDate(value) {
-  if (!value) return "";
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
 
-  const date = new Date(value);
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.style.display = "none";
 
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 3000);
 }
 
-function getNominal(item) {
-  const value =
-    item.nominal ??
-    item.amount ??
-    item.jumlah ??
-    item.nilai ??
-    0;
-
-  const numberValue = Number(value);
-
-  return Number.isFinite(numberValue) ? numberValue : 0;
-}
-
-function getTransactionType(item) {
-  return (
-    item.jenis ??
-    item.type ??
-    item.transactionType ??
-    "-"
-  );
-}
-
-function getCategory(item) {
-  return (
-    item.kategori ??
-    item.category ??
-    "-"
-  );
-}
-
-function getDescription(item) {
-  return (
-    item.keterangan ??
-    item.description ??
-    item.catatan ??
-    item.note ??
-    "-"
-  );
-}
-
-function getOwner(item) {
-  return (
-    item.pemilik ??
-    item.owner ??
-    item.userName ??
-    item.namaPengguna ??
-    "-"
-  );
-}
-
-function downloadFile(file) {
-  const blobUrl = URL.createObjectURL(file);
-  const link = document.createElement("a");
-
-  link.href = blobUrl;
-  link.download = file.name;
-  link.style.display = "none";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(blobUrl);
-  }, 2000);
-}
-
-async function shareFile(file, reportTitle) {
-  const shareData = {
-    title: reportTitle,
-    text: reportTitle,
-    files: [file],
-  };
-
-  const supportsFileSharing =
-    typeof navigator !== "undefined" &&
-    typeof navigator.share === "function" &&
-    typeof navigator.canShare === "function" &&
-    navigator.canShare({ files: [file] });
-
-  if (!supportsFileSharing) {
-    return false;
-  }
-
-  await navigator.share(shareData);
-
-  return true;
-}
-
-function createSummarySheet(transactions, periodLabel) {
-  const totalIncome = transactions
-    .filter((item) => {
-      const type = getTransactionType(item).toLowerCase();
-
-      return (
-        type.includes("masuk") ||
-        type.includes("pemasukan") ||
-        type.includes("income")
-      );
-    })
-    .reduce((total, item) => total + getNominal(item), 0);
-
-  const totalExpense = transactions
-    .filter((item) => {
-      const type = getTransactionType(item).toLowerCase();
-
-      return (
-        type.includes("keluar") ||
-        type.includes("pengeluaran") ||
-        type.includes("expense")
-      );
-    })
-    .reduce((total, item) => total + getNominal(item), 0);
-
-  const balance = totalIncome - totalExpense;
-
-  const summaryData = [
-    ["Laporan Keuangan Keluarga"],
-    ["Periode", periodLabel],
-    [],
-    ["Keterangan", "Nominal"],
-    ["Total pemasukan", totalIncome],
-    ["Total pengeluaran", totalExpense],
-    ["Saldo", balance],
-  ];
-
-  const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
-
-  worksheet["!cols"] = [
-    { wch: 25 },
-    { wch: 22 },
-  ];
-
-  worksheet["!merges"] = [
-    {
-      s: { r: 0, c: 0 },
-      e: { r: 0, c: 1 },
-    },
-  ];
-
-  if (worksheet.B5) {
-    worksheet.B5.z = '"Rp"#,##0';
-  }
-
-  if (worksheet.B6) {
-    worksheet.B6.z = '"Rp"#,##0';
-  }
-
-  if (worksheet.B7) {
-    worksheet.B7.z = '"Rp"#,##0';
-  }
-
-  return worksheet;
-}
-
-function createTransactionSheet(transactions) {
-  const rows = transactions.map((item, index) => ({
+function createRows(transactions) {
+  return transactions.map((item, index) => ({
     No: index + 1,
-    Tanggal: formatDate(
+    Tanggal:
       item.tanggal ??
       item.date ??
-      item.createdAt
+      item.createdAt ??
+      "",
+    Jenis:
+      item.jenis ??
+      item.type ??
+      "",
+    Kategori:
+      item.kategori ??
+      item.category ??
+      "",
+    Keterangan:
+      item.keterangan ??
+      item.description ??
+      item.catatan ??
+      "",
+    Nominal: Number(
+      item.nominal ??
+      item.amount ??
+      item.jumlah ??
+      0
     ),
-    Jenis: getTransactionType(item),
-    Kategori: getCategory(item),
-    Keterangan: getDescription(item),
-    Nominal: getNominal(item),
-    Pemilik: getOwner(item),
+    Pemilik:
+      item.pemilik ??
+      item.owner ??
+      item.userName ??
+      "",
   }));
+}
+
+function createExcelFile(transactions, periodLabel) {
+  const rows = createRows(transactions);
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
 
   worksheet["!cols"] = [
     { wch: 6 },
-    { wch: 14 },
+    { wch: 16 },
     { wch: 16 },
     { wch: 20 },
     { wch: 32 },
@@ -209,30 +78,78 @@ function createTransactionSheet(transactions) {
     { wch: 18 },
   ];
 
-  const range = XLSX.utils.decode_range(
-    worksheet["!ref"] || "A1:G1"
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Rincian Transaksi"
   );
 
-  for (let row = 1; row <= range.e.r; row += 1) {
-    const nominalCell = worksheet[
-      XLSX.utils.encode_cell({
-        r: row,
-        c: 5,
-      })
-    ];
+  const arrayBuffer = XLSX.write(workbook, {
+    type: "array",
+    bookType: "xlsx",
+    compression: true,
+  });
 
-    if (nominalCell) {
-      nominalCell.z = '"Rp"#,##0';
+  const fileName =
+    `laporan-${sanitizeFileName(periodLabel)}.xlsx`;
+
+  return new File(
+    [arrayBuffer],
+    fileName,
+    {
+      type: XLSX_MIME,
+      lastModified: Date.now(),
     }
-  }
-
-  return worksheet;
+  );
 }
 
-export async function exportTransactionsToExcel({
+function createCsvFile(transactions, periodLabel) {
+  const rows = createRows(transactions);
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+
+  const csv = XLSX.utils.sheet_to_csv(worksheet);
+
+  const csvWithBom = `\uFEFF${csv}`;
+
+  const fileName =
+    `laporan-${sanitizeFileName(periodLabel)}.csv`;
+
+  return new File(
+    [csvWithBom],
+    fileName,
+    {
+      type: "text/csv;charset=utf-8",
+      lastModified: Date.now(),
+    }
+  );
+}
+
+async function shareFile(file) {
+  if (typeof navigator.share !== "function") {
+    throw new Error(
+      "Perangkat ini tidak mendukung fitur berbagi file."
+    );
+  }
+
+  if (
+    typeof navigator.canShare === "function" &&
+    !navigator.canShare({ files: [file] })
+  ) {
+    throw new Error(
+      `iPhone tidak mengizinkan file ${file.name} dibagikan.`
+    );
+  }
+
+  await navigator.share({
+    files: [file],
+  });
+}
+
+export async function exportReport({
   transactions,
   periodLabel = "Juni 2026",
-  filePrefix = "laporan-keuangan",
 }) {
   if (!Array.isArray(transactions)) {
     throw new Error("Data transaksi tidak valid.");
@@ -240,84 +157,114 @@ export async function exportTransactionsToExcel({
 
   if (transactions.length === 0) {
     throw new Error(
-      "Belum ada transaksi pada periode ini."
+      "Tidak ada transaksi untuk diekspor."
     );
   }
 
-  const workbook = XLSX.utils.book_new();
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (
+      navigator.platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    );
 
-  const summaryWorksheet = createSummarySheet(
+  const isStandalone =
+    window.matchMedia(
+      "(display-mode: standalone)"
+    ).matches ||
+    window.navigator.standalone === true;
+
+  const excelFile = createExcelFile(
     transactions,
     periodLabel
   );
 
-  const transactionWorksheet =
-    createTransactionSheet(transactions);
-
-  XLSX.utils.book_append_sheet(
-    workbook,
-    summaryWorksheet,
-    "Ringkasan"
-  );
-
-  XLSX.utils.book_append_sheet(
-    workbook,
-    transactionWorksheet,
-    "Rincian Transaksi"
-  );
-
-  const workbookArray = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array",
-    compression: true,
+  console.log("Export diagnostics", {
+    isIOS,
+    isStandalone,
+    fileName: excelFile.name,
+    fileType: excelFile.type,
+    fileSize: excelFile.size,
+    hasShare:
+      typeof navigator.share === "function",
+    hasCanShare:
+      typeof navigator.canShare === "function",
+    canShareExcel:
+      typeof navigator.canShare === "function"
+        ? navigator.canShare({
+            files: [excelFile],
+          })
+        : null,
   });
 
-  const safePeriod = sanitizeFileName(periodLabel);
+  /*
+   * iPhone atau aplikasi Home Screen:
+   * prioritaskan share sheet.
+   */
+  if (isIOS || isStandalone) {
+    try {
+      await shareFile(excelFile);
 
-  const fileName =
-    `${filePrefix}-${safePeriod}.xlsx`;
-
-  const file = new File(
-    [workbookArray],
-    fileName,
-    {
-      type: EXCEL_MIME_TYPE,
-    }
-  );
-
-  try {
-    const shared = await shareFile(
-      file,
-      `Laporan Keuangan ${periodLabel}`
-    );
-
-    if (shared) {
       return {
         success: true,
-        method: "share",
-        fileName,
+        method: "share-xlsx",
+        message:
+          "File Excel berhasil dibuat. Pilih Save to Files.",
       };
-    }
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      return {
-        success: false,
-        cancelled: true,
-        message: "Proses berbagi file dibatalkan.",
-      };
-    }
+    } catch (excelError) {
+      console.error(
+        "Share XLSX gagal:",
+        excelError
+      );
 
-    console.warn(
-      "File tidak dapat dibagikan. Menggunakan download biasa.",
-      error
-    );
+      /*
+       * Fallback CSV untuk iPhone.
+       */
+      const csvFile = createCsvFile(
+        transactions,
+        periodLabel
+      );
+
+      try {
+        await shareFile(csvFile);
+
+        return {
+          success: true,
+          method: "share-csv",
+          message:
+            "Excel tidak didukung oleh perangkat ini. Laporan dibagikan dalam format CSV yang tetap dapat dibuka di Excel.",
+        };
+      } catch (csvError) {
+        console.error(
+          "Share CSV gagal:",
+          csvError
+        );
+
+        throw new Error(
+          [
+            "iPhone gagal membagikan file.",
+            `XLSX: ${
+              excelError?.message ||
+              "tidak diketahui"
+            }`,
+            `CSV: ${
+              csvError?.message ||
+              "tidak diketahui"
+            }`,
+          ].join(" ")
+        );
+      }
+    }
   }
 
-  downloadFile(file);
+  /*
+   * Browser desktop.
+   */
+  downloadBlob(excelFile, excelFile.name);
 
   return {
     success: true,
-    method: "download",
-    fileName,
+    method: "download-xlsx",
+    message: "Laporan Excel berhasil diunduh.",
   };
 }
