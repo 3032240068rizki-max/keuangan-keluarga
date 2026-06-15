@@ -69,7 +69,7 @@ function App() {
         <div className="pb-20">
           <Routes>
             <Route path="/" element={<Dashboard user={user} />} />
-            <Route path="/catat" element={<CatatTransaksi user={user} key={Date.now()} />} />            <Route path="/laporan" element={<Laporan user={user} />} />
+            <Route path="/catat" element={<CatatTransaksi user={user} key={Date.now()} />} />            <Route path="/laporan" element={<Laporan />} />
             <Route path="/pengaturan" element={<Pengaturan />} />
           </Routes>
         </div>

@@ -8,9 +8,7 @@ function formatRupiah(angka) {
 
 const WARNA = ['#60a5fa', '#f87171', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#94a3b8']
 
-function Laporan({ user }) {
-  const nama = user?.user_metadata?.nama || user?.email?.split('@')[0] || 'User'
-
+function Laporan() {
   const [transaksi, setTransaksi] = useState([])
   const [loading, setLoading] = useState(true)
   const [bulan, setBulan] = useState(() => {
@@ -19,11 +17,10 @@ function Laporan({ user }) {
   })
   const [tab, setTab] = useState('ringkasan')
   const [filterTipe, setFilterTipe] = useState('semua')
-  const [filterUser, setFilterUser] = useState('semua')
 
   useEffect(() => {
     fetchData()
-  }, [bulan, filterUser])
+  }, [bulan])
 
   async function fetchData() {
     setLoading(true)
@@ -32,16 +29,13 @@ function Laporan({ user }) {
     akhir.setMonth(akhir.getMonth() + 1)
     const akhirISO = akhir.toISOString()
 
-    let query = supabase
+    const { data, error } = await supabase
       .from('transaksi')
       .select('*')
       .gte('tanggal', awal)
       .lt('tanggal', akhirISO)
       .order('tanggal', { ascending: false })
 
-    if (filterUser === 'punyaku') query = query.eq('siapa', nama)
-
-    const { data, error } = await query
     if (!error) setTransaksi(data)
     setLoading(false)
   }
@@ -82,22 +76,6 @@ function Laporan({ user }) {
         />
       </div>
 
-      {/* Filter user */}
-      <div className="flex rounded-xl overflow-hidden border border-gray-100 bg-white">
-        <button
-          onClick={() => setFilterUser('semua')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${filterUser === 'semua' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}
-        >
-          Semua
-        </button>
-        <button
-          onClick={() => setFilterUser('punyaku')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${filterUser === 'punyaku' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}
-        >
-          Punyaku
-        </button>
-      </div>
-
       {/* Tab ringkasan / rincian */}
       <div className="flex rounded-xl overflow-hidden border border-gray-100 bg-white">
         <button
@@ -116,6 +94,7 @@ function Laporan({ user }) {
 
       {tab === 'ringkasan' && (
         <>
+          {/* Ringkasan */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <p className="text-xs text-gray-400">Total pemasukan</p>
@@ -127,6 +106,7 @@ function Laporan({ user }) {
             </div>
           </div>
 
+          {/* Pie chart */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-sm font-medium text-gray-500 mb-4">Pengeluaran per kategori</p>
             {loading && <p className="text-sm text-gray-300">Memuat...</p>}
@@ -160,7 +140,8 @@ function Laporan({ user }) {
             )}
           </div>
 
-          {!loading && barData.length > 0 && filterUser === 'semua' && (
+          {/* Bar chart per anggota */}
+          {!loading && barData.length > 0 && (
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <p className="text-sm font-medium text-gray-500 mb-4">Per anggota keluarga</p>
               <ResponsiveContainer width="100%" height={160}>

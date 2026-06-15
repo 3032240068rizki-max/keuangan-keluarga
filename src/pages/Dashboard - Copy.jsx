@@ -5,34 +5,35 @@ function formatRupiah(angka) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka)
 }
 
-function Dashboard({ user }) {
-  const nama = user?.user_metadata?.nama || user?.email?.split('@')[0] || 'User'
-
+function Dashboard() {
   const [transaksi, setTransaksi] = useState([])
   const [totalPemasukan, setTotalPemasukan] = useState(0)
   const [totalPengeluaran, setTotalPengeluaran] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('semua')
 
   useEffect(() => {
     fetchData()
-  }, [filter])
+  }, [])
 
   async function fetchData() {
-    setLoading(true)
-
-    let saldoQuery = supabase.from('transaksi').select('tipe, nominal')
-    if (filter === 'punyaku') saldoQuery = saldoQuery.eq('siapa', nama)
-    const { data: semua } = await saldoQuery
+    // Ambil semua transaksi untuk hitung saldo
+    const { data: semua } = await supabase
+      .from('transaksi')
+      .select('tipe, nominal')
 
     if (semua) {
-      setTotalPemasukan(semua.filter(t => t.tipe === 'pemasukan').reduce((sum, t) => sum + t.nominal, 0))
-      setTotalPengeluaran(semua.filter(t => t.tipe === 'pengeluaran').reduce((sum, t) => sum + t.nominal, 0))
+      const pemasukan = semua.filter(t => t.tipe === 'pemasukan').reduce((sum, t) => sum + t.nominal, 0)
+      const pengeluaran = semua.filter(t => t.tipe === 'pengeluaran').reduce((sum, t) => sum + t.nominal, 0)
+      setTotalPemasukan(pemasukan)
+      setTotalPengeluaran(pengeluaran)
     }
 
-    let query = supabase.from('transaksi').select('*').order('tanggal', { ascending: false }).limit(10)
-    if (filter === 'punyaku') query = query.eq('siapa', nama)
-    const { data: terakhir } = await query
+    // Ambil 10 terakhir untuk ditampilkan
+    const { data: terakhir } = await supabase
+      .from('transaksi')
+      .select('*')
+      .order('tanggal', { ascending: false })
+      .limit(10)
 
     if (terakhir) setTransaksi(terakhir)
     setLoading(false)
@@ -42,11 +43,15 @@ function Dashboard({ user }) {
     const konfirmasi = window.confirm('Hapus transaksi ini?')
     if (!konfirmasi) return
 
-    const { error } = await supabase.from('transaksi').delete().eq('id', id)
+    const { error } = await supabase
+      .from('transaksi')
+      .delete()
+      .eq('id', id)
 
     if (error) {
       alert('Gagal menghapus: ' + error.message)
     } else {
+      setTransaksi(prev => prev.filter(t => t.id !== id))
       fetchData()
     }
   }
@@ -56,50 +61,36 @@ function Dashboard({ user }) {
   return (
     <div className="px-4 py-4 space-y-4">
 
-      {/* Filter tab */}
-      <div className="flex rounded-xl overflow-hidden border border-gray-100 bg-white">
-        <button
-          onClick={() => setFilter('semua')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${filter === 'semua' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}
-        >
-          Semua
-        </button>
-        <button
-          onClick={() => setFilter('punyaku')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${filter === 'punyaku' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}
-        >
-          Punyaku
-        </button>
-      </div>
-
       {/* Saldo */}
       <div className="bg-white rounded-2xl p-4 shadow-sm">
-        <p className="text-sm text-gray-400">
-          {filter === 'semua' ? 'Saldo bersama' : `Saldo ${nama}`}
-        </p>
+        <p className="text-sm text-gray-400">Saldo bersama</p>
         <p className="text-3xl font-semibold text-gray-800 mt-1">
           {loading ? '...' : formatRupiah(saldo)}
         </p>
         <div className="flex gap-6 mt-3">
           <div>
             <p className="text-xs text-gray-400">Pemasukan</p>
-            <p className="text-sm font-medium text-green-500">+{formatRupiah(totalPemasukan)}</p>
+            <p className="text-sm font-medium text-green-500">
+              +{formatRupiah(totalPemasukan)}
+            </p>
           </div>
           <div className="w-px bg-gray-100"></div>
           <div>
             <p className="text-xs text-gray-400">Pengeluaran</p>
-            <p className="text-sm font-medium text-red-400">-{formatRupiah(totalPengeluaran)}</p>
+            <p className="text-sm font-medium text-red-400">
+              -{formatRupiah(totalPengeluaran)}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Transaksi terakhir */}
       <div className="bg-white rounded-2xl p-4 shadow-sm">
-        <p className="text-sm font-medium text-gray-500 mb-3">
-          {filter === 'semua' ? 'Transaksi terakhir' : `Transaksi ${nama}`}
-        </p>
+        <p className="text-sm font-medium text-gray-500 mb-3">Transaksi terakhir</p>
 
-        {loading && <p className="text-sm text-gray-300">Memuat data...</p>}
+        {loading && (
+          <p className="text-sm text-gray-300">Memuat data...</p>
+        )}
 
         {!loading && transaksi.length === 0 && (
           <p className="text-sm text-gray-300">Belum ada transaksi.</p>
@@ -122,14 +113,12 @@ function Dashboard({ user }) {
               <p className={`text-sm font-medium ${t.tipe === 'pemasukan' ? 'text-green-500' : 'text-red-400'}`}>
                 {t.tipe === 'pemasukan' ? '+' : '-'}{formatRupiah(t.nominal)}
               </p>
-              {t.siapa === nama && (
-                <button
-                  onClick={() => hapusTransaksi(t.id)}
-                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:bg-red-50 hover:text-red-400 transition-colors text-sm"
-                >
-                  ✕
-                </button>
-              )}
+              <button
+                onClick={() => hapusTransaksi(t.id)}
+                className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:bg-red-50 hover:text-red-400 transition-colors text-sm"
+              >
+                ✕
+              </button>
             </div>
           </div>
         ))}
