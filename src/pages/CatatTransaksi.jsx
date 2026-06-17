@@ -3,6 +3,8 @@ import { supabase } from '../supabase'
 
 const KATEGORI_DEFAULT = ['Makanan', 'Transportasi', 'Belanja', 'Hiburan', 'Kesehatan', 'Tagihan', 'Lainnya']
 
+const todayLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+
 function CatatTransaksi({ user }) {
   const nama = user?.user_metadata?.nama || user?.email?.split('@')[0] || 'User'
 
@@ -13,19 +15,18 @@ function CatatTransaksi({ user }) {
   const [nominal, setNominal] = useState('')
   const [kategori, setKategori] = useState(kategoriList[0] || 'Makanan')
   const [catatan, setCatatan] = useState('')
+  const [tanggal, setTanggal] = useState(todayLocal)
   const [loading, setLoading] = useState(false)
 
-useEffect(() => {
-  function refreshKategori() {
-    const saved = JSON.parse(localStorage.getItem('kategori') || JSON.stringify(KATEGORI_DEFAULT))
-    setKategoriList(saved)
-  }
-
-  refreshKategori()
-  
-  document.addEventListener('visibilitychange', refreshKategori)
-  return () => document.removeEventListener('visibilitychange', refreshKategori)
-}, [])
+  useEffect(() => {
+    function refreshKategori() {
+      const saved = JSON.parse(localStorage.getItem('kategori') || JSON.stringify(KATEGORI_DEFAULT))
+      setKategoriList(saved)
+    }
+    refreshKategori()
+    document.addEventListener('visibilitychange', refreshKategori)
+    return () => document.removeEventListener('visibilitychange', refreshKategori)
+  }, [])
 
   async function handleSubmit() {
     if (!nominal) return alert('Nominal tidak boleh kosong!')
@@ -39,7 +40,7 @@ useEffect(() => {
         kategori,
         catatan,
         siapa: nama,
-        tanggal: new Date().toISOString()
+        tanggal: new Date(tanggal).toISOString()
       })
 
     setLoading(false)
@@ -50,6 +51,7 @@ useEffect(() => {
       alert('Transaksi berhasil disimpan!')
       setNominal('')
       setCatatan('')
+      setTanggal(todayLocal())
     }
   }
 
@@ -107,6 +109,18 @@ useEffect(() => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Tanggal */}
+        <div>
+          <p className="text-xs text-gray-400 mb-1">Tanggal</p>
+          <input
+            type="date"
+            value={tanggal}
+            max={todayLocal()}
+            onChange={e => setTanggal(e.target.value)}
+            className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-300"
+          />
         </div>
 
         {/* Catatan */}

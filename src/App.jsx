@@ -47,7 +47,9 @@ function App() {
 
         {/* Header */}
         <div className="bg-white px-4 pt-6 pb-4 shadow-sm sticky top-0 z-10">
-          <p className="text-sm text-gray-400">Juni 2026</p>
+          <p className="text-sm text-gray-400">
+            {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+          </p>
           <div className="flex justify-between items-center mt-1">
             <div className="flex items-center gap-2">
               <img src="/logo depan.PNG" className="w-11 h-11 object-contain" />
@@ -69,7 +71,8 @@ function App() {
         <div className="pb-20">
           <Routes>
             <Route path="/" element={<Dashboard user={user} />} />
-            <Route path="/catat" element={<CatatTransaksi user={user} key={Date.now()} />} />            <Route path="/laporan" element={<Laporan user={user} />} />
+            <Route path="/catat" element={<CatatTransaksi user={user} />} />
+            <Route path="/laporan" element={<Laporan user={user} />} />
             <Route path="/pengaturan" element={<Pengaturan />} />
           </Routes>
         </div>
